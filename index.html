@@ -1,0 +1,945 @@
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>مغامرة الكلمات والجمل - لعبة تعليمية للأطفال</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Tajawal', sans-serif;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: linear-gradient(135deg, #e0f2fe 0%, #fef3c7 50%, #fce7f3 100%);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.5); opacity: 0; }
+      70% { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(6px); }
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7); }
+      50% { box-shadow: 0 0 20px 8px rgba(250, 204, 21, 0.4); }
+    }
+
+    .animate-float {
+      animation: float 3s ease-in-out infinite;
+    }
+
+    .animate-pop {
+      animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .animate-shake {
+      animation: shake 0.45s ease-in-out;
+    }
+
+    .animate-glow {
+      animation: pulseGlow 2s infinite;
+    }
+
+    .tile-3d {
+      transition: all 0.15s ease;
+      box-shadow: 0 6px 0 rgba(0, 0, 0, 0.18);
+    }
+
+    .tile-3d:active:not(:disabled) {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.18);
+    }
+
+    .slot-box {
+      transition: all 0.2s ease;
+    }
+
+    .confetti-piece {
+      position: fixed;
+      width: 12px;
+      height: 12px;
+      top: -20px;
+      z-index: 100;
+      pointer-events: none;
+      border-radius: 3px;
+    }
+
+    @keyframes confettiFall {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-center p-3 sm:p-6">
+
+  <!-- Main Game Container -->
+  <div id="app" class="w-full max-w-3xl bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border-4 border-white overflow-hidden relative min-h-[580px] flex flex-col">
+
+    <!-- Top Header Bar (Visible during gameplay & quiz) -->
+    <header id="game-header" class="hidden bg-gradient-to-l from-sky-500 to-indigo-500 text-white px-4 py-3 flex items-center justify-between gap-2 shadow-md">
+      <div class="flex items-center gap-2">
+        <button onclick="goHome()" class="bg-white/20 hover:bg-white/30 p-2 rounded-xl transition" title="الرئيسية">
+          🏠
+        </button>
+        <div class="bg-white/20 px-3 py-1 rounded-xl font-bold text-sm sm:text-base flex items-center gap-1">
+          <span>⭐</span>
+          <span id="score-display">0</span>
+        </div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="flex-1 max-w-xs mx-2">
+        <div class="flex justify-between text-xs font-bold mb-1 px-1">
+          <span id="stage-label">الدرس ١</span>
+          <span id="step-label">١ / ٣</span>
+        </div>
+        <div class="w-full bg-black/20 rounded-full h-3 overflow-hidden">
+          <div id="progress-bar" class="bg-amber-300 h-full rounded-full transition-all duration-500" style="width: 33%"></div>
+        </div>
+      </div>
+
+      <button id="sound-toggle-btn" onclick="toggleSound()" class="bg-white/20 hover:bg-white/30 p-2 rounded-xl transition text-lg" title="الصوت">
+        🔊
+      </button>
+    </header>
+
+    <!-- SCREEN 1: START SCREEN -->
+    <section id="start-screen" class="flex-1 flex flex-col items-center justify-center p-6 text-center">
+      <div class="text-7xl sm:text-8xl mb-4 animate-float">🦉📚</div>
+      <h1 class="text-3xl sm:text-5xl font-black text-indigo-700 mb-3 tracking-tight">
+        مغامرة الكلمات والجمل
+      </h1>
+      <p class="text-slate-600 text-base sm:text-xl font-medium max-w-md mb-8 leading-relaxed">
+        هيا نتعلم معاً كيف نكوّن الكلمات من مقاطع صوتية، ثم نجمعها لنصنع جملاً مفيدة!
+      </p>
+
+      <!-- Lesson Selection Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-xl mb-6">
+        <button onclick="startLesson(0)" class="tile-3d bg-sky-100 hover:bg-sky-200 border-2 border-sky-300 rounded-2xl p-4 flex flex-col items-center gap-2">
+          <span class="text-4xl">👦⚽</span>
+          <span class="font-extrabold text-sky-800 text-lg">الدرس ١</span>
+          <span class="text-xs font-bold text-sky-600 bg-white px-2 py-1 rounded-full">أَحْمَدُ يَلْعَبُ</span>
+        </button>
+
+        <button onclick="startLesson(1)" class="tile-3d bg-pink-100 hover:bg-pink-200 border-2 border-pink-300 rounded-2xl p-4 flex flex-col items-center gap-2">
+          <span class="text-4xl">👧📖</span>
+          <span class="font-extrabold text-pink-800 text-lg">الدرس ٢</span>
+          <span class="text-xs font-bold text-pink-600 bg-white px-2 py-1 rounded-full">سَارَةُ تَقْرَأُ</span>
+        </button>
+
+        <button onclick="startLesson(2)" class="tile-3d bg-emerald-100 hover:bg-emerald-200 border-2 border-emerald-300 rounded-2xl p-4 flex flex-col items-center gap-2">
+          <span class="text-4xl">👧🎨</span>
+          <span class="font-extrabold text-emerald-800 text-lg">الدرس ٣</span>
+          <span class="text-xs font-bold text-emerald-600 bg-white px-2 py-1 rounded-full">نُورُ تَرْسُمُ</span>
+        </button>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-center gap-4 w-full">
+        <button onclick="startLesson(0)" class="tile-3d bg-gradient-to-l from-amber-400 to-orange-500 text-white font-black text-xl px-8 py-4 rounded-2xl flex items-center gap-3 animate-glow">
+          <span>ابدأ المغامرة</span>
+          <span class="text-2xl">🚀</span>
+        </button>
+
+        <button onclick="startQuiz()" class="tile-3d bg-gradient-to-l from-purple-500 to-indigo-600 text-white font-black text-lg px-6 py-4 rounded-2xl flex items-center gap-2">
+          <span>اختبار المهارات</span>
+          <span class="text-xl">🏆</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- SCREEN 2: LESSON GAMEPLAY -->
+    <section id="gameplay-screen" class="hidden flex-1 flex flex-col justify-between p-4 sm:p-6">
+      <!-- Instruction & Visual Prompt -->
+      <div class="text-center">
+        <div id="mode-badge" class="inline-block bg-indigo-100 text-indigo-700 font-extrabold text-sm px-4 py-1 rounded-full mb-3">
+          كوّن الكلمة من المقاطع الصوتية
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 bg-gradient-to-br from-amber-50 to-sky-50 border-2 border-sky-100 rounded-2xl p-4 mb-5">
+          <div id="prompt-emoji" class="text-6xl sm:text-7xl animate-float">👦</div>
+          <div class="flex flex-col items-center sm:items-start gap-2">
+            <h2 id="prompt-title" class="text-xl sm:text-2xl font-black text-slate-800">
+              استمع وركّب كلمة:
+            </h2>
+            <div class="flex items-center gap-2">
+              <button onclick="speakCurrentTarget()" class="tile-3d bg-sky-500 hover:bg-sky-600 text-white font-bold px-4 py-2 rounded-xl flex items-center gap-2 text-sm sm:text-base">
+                <span>🔊</span>
+                <span>اسمع النطق</span>
+              </button>
+              <button onclick="showHint()" class="tile-3d bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold px-4 py-2 rounded-xl flex items-center gap-2 text-sm sm:text-base">
+                <span>💡</span>
+                <span>تلميح</span>
+              </button>
+            </div>
+            <p id="hint-text" class="text-sm font-bold text-amber-700 hidden bg-amber-100 px-3 py-1 rounded-lg"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Answer Slots Area -->
+      <div class="my-2">
+        <p class="text-center text-slate-500 font-bold text-sm mb-3">اضغط على المقاطع بالترتيب لتكوين الإجابة:</p>
+        <div id="slots-container" class="flex flex-wrap items-center justify-center gap-3 min-h-[84px] p-3 bg-slate-100/80 rounded-2xl border-2 border-dashed border-slate-300">
+          <!-- Slots injected by JS -->
+        </div>
+      </div>
+
+      <!-- Feedback Message -->
+      <div id="feedback-banner" class="h-10 flex items-center justify-center my-2">
+        <span id="feedback-text" class="font-black text-lg hidden"></span>
+      </div>
+
+      <!-- Tile Bank Area -->
+      <div class="bg-indigo-50/70 rounded-2xl p-4 border-2 border-indigo-100">
+        <div id="tiles-container" class="flex flex-wrap items-center justify-center gap-3">
+          <!-- Tiles injected by JS -->
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center justify-between mt-4 pt-2">
+        <button onclick="resetCurrentStep()" class="tile-3d bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-5 py-3 rounded-xl flex items-center gap-2">
+          <span>🔄</span>
+          <span>إعادة</span>
+        </button>
+
+        <button id="check-btn" onclick="checkAnswer()" class="tile-3d bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-lg px-8 py-3 rounded-xl flex items-center gap-2">
+          <span>تحقق</span>
+          <span>✅</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- SCREEN 3: QUIZ MODE -->
+    <section id="quiz-screen" class="hidden flex-1 flex flex-col justify-between p-4 sm:p-6">
+      <div class="text-center">
+        <div class="inline-block bg-purple-100 text-purple-700 font-extrabold text-sm px-4 py-1 rounded-full mb-3">
+          🏆 اختبار المهارات
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-100 rounded-2xl p-5 mb-5 flex flex-col items-center gap-3">
+          <div id="quiz-emoji" class="text-6xl animate-float">👦⚽</div>
+          <h2 id="quiz-question" class="text-xl sm:text-2xl font-black text-slate-800">
+            اختر المقطع الصحيح لإكمال الكلمة:
+          </h2>
+          <button onclick="speakQuizTarget()" class="tile-3d bg-purple-500 hover:bg-purple-600 text-white font-bold px-4 py-2 rounded-xl flex items-center gap-2 text-sm">
+            <span>🔊</span>
+            <span>اسمع الكلمة / الجملة</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quiz Interactive Display -->
+      <div id="quiz-display" class="flex flex-wrap items-center justify-center gap-2 text-3xl sm:text-4xl font-black text-indigo-800 my-4 min-h-[70px]">
+        <!-- Injected by JS -->
+      </div>
+
+      <!-- Quiz Options -->
+      <div id="quiz-options" class="grid grid-cols-2 sm:grid-cols-3 gap-3 my-4">
+        <!-- Injected by JS -->
+      </div>
+
+      <div id="quiz-feedback" class="h-10 flex items-center justify-center font-black text-lg"></div>
+    </section>
+
+    <!-- SCREEN 4: GAME OVER / VICTORY SCREEN -->
+    <section id="gameover-screen" class="hidden flex-1 flex flex-col items-center justify-center p-6 text-center">
+      <div id="victory-emoji" class="text-7xl sm:text-8xl mb-4 animate-float">🏆</div>
+      <h2 id="victory-title" class="text-3xl sm:text-4xl font-black text-indigo-700 mb-2">
+        أحسنت يا بطل!
+      </h2>
+      <p id="victory-subtitle" class="text-slate-600 text-lg font-bold mb-6">
+        لقد أتممت التحدي بنجاح باهر!
+      </p>
+
+      <div class="bg-amber-50 border-4 border-amber-200 rounded-3xl p-6 mb-8 w-full max-w-sm shadow-inner">
+        <div class="text-sm font-bold text-amber-700 mb-1">مجموع النجوم</div>
+        <div class="text-5xl font-black text-amber-500 flex items-center justify-center gap-2">
+          <span>⭐</span>
+          <span id="final-score">0</span>
+        </div>
+        <div id="victory-stars" class="text-3xl mt-3">⭐⭐⭐</div>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-center gap-4">
+        <button onclick="goHome()" class="tile-3d bg-sky-500 hover:bg-sky-600 text-white font-black text-lg px-6 py-4 rounded-2xl flex items-center gap-2">
+          <span>🏠</span>
+          <span>القائمة الرئيسية</span>
+        </button>
+        <button id="next-action-btn" onclick="startQuiz()" class="tile-3d bg-gradient-to-l from-purple-500 to-indigo-600 text-white font-black text-lg px-6 py-4 rounded-2xl flex items-center gap-2">
+          <span>🏆</span>
+          <span>اختبار المهارات</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- CELEBRATION OVERLAY MODAL (Between steps) -->
+    <div id="step-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border-4 border-amber-300 animate-pop">
+        <div id="modal-emoji" class="text-6xl mb-3">🌟</div>
+        <h3 id="modal-title" class="text-2xl font-black text-emerald-600 mb-2">عمل رائع!</h3>
+        <div id="modal-word" class="text-3xl sm:text-4xl font-black text-indigo-800 bg-indigo-50 py-4 px-6 rounded-2xl mb-4 border-2 border-indigo-100">
+          أَحْمَدُ
+        </div>
+        <p id="modal-desc" class="text-slate-600 font-bold mb-6">لقد كوّنت الكلمة بنجاح!</p>
+        <button id="modal-next-btn" onclick="nextStep()" class="tile-3d w-full bg-gradient-to-l from-emerald-500 to-teal-500 text-white font-black text-xl py-4 rounded-2xl">
+          التالي ⬅️
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. AUDIO & SPEECH ENGINE (Web Audio API + SpeechSynthesis)
+    // ==========================================
+    let soundEnabled = true;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx && AudioCtx) {
+        audioCtx = new AudioCtx();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playTone(freq, type = 'sine', duration = 0.15, delay = 0, vol = 0.15) {
+      if (!soundEnabled) return;
+      initAudio();
+      if (!audioCtx) return;
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+
+      gain.gain.setValueAtTime(vol, audioCtx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(audioCtx.currentTime + delay);
+      osc.stop(audioCtx.currentTime + delay + duration);
+    }
+
+    const sfx = {
+      pop: () => playTone(520, 'sine', 0.08, 0, 0.15),
+      remove: () => playTone(340, 'triangle', 0.08, 0, 0.12),
+      success: () => {
+        playTone(523.25, 'sine', 0.15, 0, 0.18);    // C5
+        playTone(659.25, 'sine', 0.15, 0.1, 0.18);  // E5
+        playTone(783.99, 'sine', 0.2, 0.2, 0.18);   // G5
+        playTone(1046.50, 'sine', 0.35, 0.3, 0.2);  // C6
+      },
+      error: () => {
+        playTone(220, 'sawtooth', 0.15, 0, 0.08);
+        playTone(180, 'sawtooth', 0.2, 0.12, 0.08);
+      },
+      fanfare: () => {
+        const notes = [523, 659, 784, 1046, 784, 1046];
+        const times = [0, 0.12, 0.24, 0.36, 0.52, 0.65];
+        notes.forEach((n, i) => playTone(n, 'triangle', 0.22, times[i], 0.18));
+      }
+    };
+
+    function speakArabic(text) {
+      if (!soundEnabled || !('speechSynthesis' in window)) return;
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'ar-SA';
+        utterance.rate = 0.82;
+        utterance.pitch = 1.1;
+        window.speechSynthesis.speak(utterance);
+      } catch (e) {
+        // Fallback silently if speech synthesis is blocked
+      }
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('sound-toggle-btn').textContent = soundEnabled ? '🔊' : '🔇';
+      if (soundEnabled) sfx.pop();
+    }
+
+    // ==========================================
+    // 2. CURRICULUM DATA
+    // ==========================================
+    const lessons = [
+      {
+        id: 0,
+        title: "الدرس ١: أحمد يلعب",
+        steps: [
+          {
+            type: "word",
+            emoji: "👦",
+            prompt: "استمع وركّب كلمة: أَحْمَدُ",
+            target: "أَحْمَدُ",
+            speech: "أحمد",
+            hint: "تبدأ بـ (أَحْـ) وتنتهي بـ (مَدُ)",
+            correctParts: ["أَحْـ", "مَدُ"],
+            distractors: ["سَـ", "بُ"]
+          },
+          {
+            type: "word",
+            emoji: "⚽",
+            prompt: "استمع وركّب كلمة: يَلْعَبُ",
+            target: "يَلْعَبُ",
+            speech: "يلعب",
+            hint: "تتكون من: يَلْـ + عَـ + بُ",
+            correctParts: ["يَلْـ", "عَـ", "بُ"],
+            distractors: ["تَقْـ", "رَ"]
+          },
+          {
+            type: "sentence",
+            emoji: "👦⚽",
+            prompt: "اجمع الكلمتين لتكوين جملة مفيدة:",
+            target: "أَحْمَدُ يَلْعَبُ",
+            speech: "أحمد يلعب",
+            hint: "نبدأ بالاسم (أَحْمَدُ) ثم الفعل (يَلْعَبُ)",
+            correctParts: ["أَحْمَدُ", "يَلْعَبُ"],
+            distractors: ["سَارَةُ"]
+          }
+        ]
+      },
+      {
+        id: 1,
+        title: "الدرس ٢: سارة تقرأ",
+        steps: [
+          {
+            type: "word",
+            emoji: "👧",
+            prompt: "استمع وركّب كلمة: سَارَةُ",
+            target: "سَارَةُ",
+            speech: "سارة",
+            hint: "تتكون من مقطعين: سَا + رَةُ",
+            correctParts: ["سَا", "رَةُ"],
+            distractors: ["نُو", "مَدُ"]
+          },
+          {
+            type: "word",
+            emoji: "📖",
+            prompt: "استمع وركّب كلمة: تَقْرَأُ",
+            target: "تَقْرَأُ",
+            speech: "تقرأ",
+            hint: "تبدأ بـ (تَقْـ) ثم (رَ) ثم (أُ)",
+            correctParts: ["تَقْـ", "رَ", "أُ"],
+            distractors: ["يَلْـ", "سُـ"]
+          },
+          {
+            type: "sentence",
+            emoji: "👧📖",
+            prompt: "اجمع الكلمتين لتكوين جملة مفيدة:",
+            target: "سَارَةُ تَقْرَأُ",
+            speech: "سارة تقرأ",
+            hint: "نبدأ بـ (سَارَةُ) ثم (تَقْرَأُ)",
+            correctParts: ["سَارَةُ", "تَقْرَأُ"],
+            distractors: ["يَلْعَبُ"]
+          }
+        ]
+      },
+      {
+        id: 2,
+        title: "الدرس ٣: نور ترسم",
+        steps: [
+          {
+            type: "word",
+            emoji: "👧",
+            prompt: "استمع وركّب كلمة: نُورُ",
+            target: "نُورُ",
+            speech: "نور",
+            hint: "مقطعان: نُو + رُ",
+            correctParts: ["نُو", "رُ"],
+            distractors: ["سَا", "قِطْـ"]
+          },
+          {
+            type: "word",
+            emoji: "🎨",
+            prompt: "استمع وركّب كلمة: تَرْسُمُ",
+            target: "تَرْسُمُ",
+            speech: "ترسم",
+            hint: "تبدأ بـ (تَرْ) ثم (سُـ) ثم (مُ)",
+            correctParts: ["تَرْ", "سُـ", "مُ"],
+            distractors: ["أُ", "عَـ"]
+          },
+          {
+            type: "sentence",
+            emoji: "👧🎨",
+            prompt: "اجمع الكلمتين لتكوين جملة مفيدة:",
+            target: "نُورُ تَرْسُمُ",
+            speech: "نور ترسم",
+            hint: "نبدأ بـ (نُورُ) ثم (تَرْسُمُ)",
+            correctParts: ["نُورُ", "تَرْسُمُ"],
+            distractors: ["تَقْرَأُ"]
+          }
+        ]
+      }
+    ];
+
+    const quizQuestions = [
+      {
+        emoji: "👦",
+        question: "اختر المقطع الناقص لتكوين كلمة (أَحْمَدُ):",
+        displayParts: ["أَحْـ", "؟"],
+        correct: "مَدُ",
+        options: ["مَدُ", "رَةُ", "سُـ"],
+        speech: "أحمد"
+      },
+      {
+        emoji: "⚽",
+        question: "اختر المقطع الناقص لتكوين كلمة (يَلْعَبُ):",
+        displayParts: ["يَلْـ", "؟", "بُ"],
+        correct: "عَـ",
+        options: ["رَ", "عَـ", "نُو"],
+        speech: "يلعب"
+      },
+      {
+        emoji: "📖",
+        question: "ما هي الكلمة التي تتكون من المقاطع: تَقْـ + رَ + أُ ؟",
+        displayParts: ["تَقْـ + رَ + أُ", "=", "؟"],
+        correct: "تَقْرَأُ",
+        options: ["تَرْسُمُ", "يَلْعَبُ", "تَقْرَأُ"],
+        speech: "تقرأ"
+      },
+      {
+        emoji: "👦⚽",
+        question: "اختر الجملة الصحيحة المناسبة للصورة:",
+        displayParts: ["🖼️", "👦⚽"],
+        correct: "أَحْمَدُ يَلْعَبُ",
+        options: ["أَحْمَدُ يَلْعَبُ", "سَارَةُ تَقْرَأُ", "نُورُ تَرْسُمُ"],
+        speech: "أحمد يلعب"
+      },
+      {
+        emoji: "👧🎨",
+        question: "أكمل الجملة المناسبة للصورة: نُورُ ...",
+        displayParts: ["نُورُ", "؟"],
+        correct: "تَرْسُمُ",
+        options: ["يَلْعَبُ", "تَرْسُمُ", "تَقْرَأُ"],
+        speech: "نور ترسم"
+      },
+      {
+        emoji: "👧📖",
+        question: "اختر الجملة الصحيحة المناسبة للصورة:",
+        displayParts: ["🖼️", "👧📖"],
+        correct: "سَارَةُ تَقْرَأُ",
+        options: ["نُورُ تَرْسُمُ", "أَحْمَدُ يَلْعَبُ", "سَارَةُ تَقْرَأُ"],
+        speech: "سارة تقرأ"
+      }
+    ];
+
+    // ==========================================
+    // 3. GAME STATE
+    // ==========================================
+    let state = {
+      screen: 'start',
+      score: 0,
+      currentLessonIdx: 0,
+      currentStepIdx: 0,
+      selectedTiles: [], // array of { id, text }
+      availableTiles: [], // array of { id, text, used }
+      quizIdx: 0,
+      quizLocked: false
+    };
+
+    // ==========================================
+    // 4. NAVIGATION & SCREEN MANAGEMENT
+    // ==========================================
+    function showScreen(screenId) {
+      ['start-screen', 'gameplay-screen', 'quiz-screen', 'gameover-screen'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+      document.getElementById(screenId).classList.remove('hidden');
+
+      const header = document.getElementById('game-header');
+      if (screenId === 'start-screen') {
+        header.classList.add('hidden');
+      } else {
+        header.classList.remove('hidden');
+      }
+    }
+
+    function goHome() {
+      sfx.pop();
+      window.speechSynthesis?.cancel();
+      document.getElementById('step-modal').classList.add('hidden');
+      showScreen('start-screen');
+    }
+
+    function updateScore(points) {
+      state.score += points;
+      document.getElementById('score-display').textContent = state.score;
+    }
+
+    // ==========================================
+    // 5. LESSON GAMEPLAY LOGIC
+    // ==========================================
+    function startLesson(lessonIdx) {
+      sfx.pop();
+      state.currentLessonIdx = lessonIdx;
+      state.currentStepIdx = 0;
+      if (lessonIdx === 0 && state.screen === 'start') {
+        state.score = 0;
+        document.getElementById('score-display').textContent = '0';
+      }
+      showScreen('gameplay-screen');
+      loadStep();
+    }
+
+    function loadStep() {
+      const lesson = lessons[state.currentLessonIdx];
+      const step = lesson.steps[state.currentStepIdx];
+
+      // Update Header
+      document.getElementById('stage-label').textContent = lesson.title;
+      document.getElementById('step-label').textContent = `${state.currentStepIdx + 1} / ${lesson.steps.length}`;
+      const progressPct = ((state.currentStepIdx + 1) / lesson.steps.length) * 100;
+      document.getElementById('progress-bar').style.width = `${progressPct}%`;
+
+      // Update Prompt
+      document.getElementById('mode-badge').textContent = step.type === 'word'
+        ? '🧩 كوّن الكلمة من المقاطع الصوتية'
+        : '✨ اجمع الكلمتين لتكوين جملة';
+      document.getElementById('mode-badge').className = step.type === 'word'
+        ? 'inline-block bg-indigo-100 text-indigo-700 font-extrabold text-sm px-4 py-1 rounded-full mb-3'
+        : 'inline-block bg-amber-100 text-amber-800 font-extrabold text-sm px-4 py-1 rounded-full mb-3';
+
+      document.getElementById('prompt-emoji').textContent = step.emoji;
+      document.getElementById('prompt-title').textContent = step.prompt;
+      document.getElementById('hint-text').classList.add('hidden');
+      document.getElementById('hint-text').textContent = step.hint;
+
+      // Clear feedback
+      const fb = document.getElementById('feedback-text');
+      fb.classList.add('hidden');
+
+      // Prepare Tiles (correct + distractors, shuffled)
+      const allParts = [...step.correctParts, ...step.distractors];
+      const shuffled = allParts
+        .map((text, idx) => ({ id: `tile-${idx}-${Math.random()}`, text, used: false }))
+        .sort(() => Math.random() - 0.5);
+
+      state.availableTiles = shuffled;
+      state.selectedTiles = new Array(step.correctParts.length).fill(null);
+
+      renderSlotsAndTiles();
+      setTimeout(() => speakArabic(step.speech), 300);
+    }
+
+    function renderSlotsAndTiles() {
+      const lesson = lessons[state.currentLessonIdx];
+      const step = lesson.steps[state.currentStepIdx];
+      const slotsContainer = document.getElementById('slots-container');
+      const tilesContainer = document.getElementById('tiles-container');
+
+      slotsContainer.innerHTML = '';
+      tilesContainer.innerHTML = '';
+
+      // Render Slots
+      state.selectedTiles.forEach((tile, slotIdx) => {
+        const slotEl = document.createElement('button');
+        slotEl.className = tile
+          ? 'slot-box tile-3d bg-emerald-500 text-white font-black text-2xl sm:text-3xl px-5 py-3 rounded-2xl min-w-[85px] animate-pop'
+          : 'slot-box bg-white border-2 border-dashed border-sky-400 text-sky-300 font-black text-2xl px-5 py-3 rounded-2xl min-w-[85px] min-h-[60px] flex items-center justify-center';
+
+        slotEl.textContent = tile ? tile.text : (slotIdx + 1);
+        if (tile) {
+          slotEl.onclick = () => removeTileFromSlot(slotIdx);
+        }
+        slotsContainer.appendChild(slotEl);
+      });
+
+      // Render Available Tiles
+      const tileColors = [
+        'bg-sky-500 hover:bg-sky-600 text-white',
+        'bg-amber-400 hover:bg-amber-500 text-amber-950',
+        'bg-pink-500 hover:bg-pink-600 text-white',
+        'bg-purple-500 hover:bg-purple-600 text-white',
+        'bg-teal-500 hover:bg-teal-600 text-white'
+      ];
+
+      state.availableTiles.forEach((tile, idx) => {
+        const btn = document.createElement('button');
+        const colorClass = tileColors[idx % tileColors.length];
+        btn.className = `tile-3d ${colorClass} font-black text-2xl sm:text-3xl px-6 py-3 rounded-2xl transition ${tile.used ? 'opacity-25 scale-90 cursor-default' : ''}`;
+        btn.textContent = tile.text;
+        btn.disabled = tile.used;
+        btn.onclick = () => selectTile(tile.id);
+        tilesContainer.appendChild(btn);
+      });
+
+      // Enable check button only if all slots are filled
+      const allFilled = state.selectedTiles.every(t => t !== null);
+      document.getElementById('check-btn').disabled = !allFilled;
+    }
+
+    function selectTile(tileId) {
+      const emptySlotIdx = state.selectedTiles.findIndex(t => t === null);
+      if (emptySlotIdx === -1) return;
+
+      const tile = state.availableTiles.find(t => t.id === tileId);
+      if (!tile || tile.used) return;
+
+      sfx.pop();
+      tile.used = true;
+      state.selectedTiles[emptySlotIdx] = tile;
+
+      // Clear error feedback if any
+      document.getElementById('feedback-text').classList.add('hidden');
+      renderSlotsAndTiles();
+    }
+
+    function removeTileFromSlot(slotIdx) {
+      const tile = state.selectedTiles[slotIdx];
+      if (!tile) return;
+
+      sfx.remove();
+      tile.used = false;
+      state.selectedTiles[slotIdx] = null;
+      document.getElementById('feedback-text').classList.add('hidden');
+      renderSlotsAndTiles();
+    }
+
+    function resetCurrentStep() {
+      sfx.remove();
+      state.availableTiles.forEach(t => t.used = false);
+      state.selectedTiles.fill(null);
+      document.getElementById('feedback-text').classList.add('hidden');
+      renderSlotsAndTiles();
+    }
+
+    function showHint() {
+      sfx.pop();
+      const hintEl = document.getElementById('hint-text');
+      hintEl.classList.remove('hidden');
+      hintEl.classList.add('animate-pop');
+    }
+
+    function speakCurrentTarget() {
+      const step = lessons[state.currentLessonIdx].steps[state.currentStepIdx];
+      speakArabic(step.speech);
+    }
+
+    function checkAnswer() {
+      const lesson = lessons[state.currentLessonIdx];
+      const step = lesson.steps[state.currentStepIdx];
+      const userAnswer = state.selectedTiles.map(t => t.text);
+      const isCorrect = userAnswer.every((val, i) => val === step.correctParts[i]);
+
+      if (isCorrect) {
+        sfx.success();
+        updateScore(10);
+        speakArabic(step.speech);
+        spawnConfetti(25);
+        showStepModal(step);
+      } else {
+        sfx.error();
+        const slotsContainer = document.getElementById('slots-container');
+        slotsContainer.classList.remove('animate-shake');
+        void slotsContainer.offsetWidth; // trigger reflow
+        slotsContainer.classList.add('animate-shake');
+
+        const fb = document.getElementById('feedback-text');
+        fb.textContent = 'حاول مرة أخرى يا بطل! ركّز في الترتيب 💪';
+        fb.className = 'font-black text-base sm:text-lg text-rose-600 animate-pop';
+        fb.classList.remove('hidden');
+      }
+    }
+
+    function showStepModal(step) {
+      const modal = document.getElementById('step-modal');
+      document.getElementById('modal-emoji').textContent = step.emoji;
+      document.getElementById('modal-word').textContent = step.target;
+
+      const isLastStepInLesson = state.currentStepIdx === lessons[state.currentLessonIdx].steps.length - 1;
+      if (step.type === 'sentence') {
+        document.getElementById('modal-title').textContent = 'ممتاز! جملة رائعة 🌟';
+        document.getElementById('modal-desc').textContent = 'لقد جمعت الكلمتين وكوّنت جملة مفيدة!';
+      } else {
+        document.getElementById('modal-title').textContent = 'أحسنت! كلمة صحيحة 👏';
+        document.getElementById('modal-desc').textContent = 'لقد ركّبت المقاطع الصوتية بنجاح!';
+      }
+
+      const isLastLesson = state.currentLessonIdx === lessons.length - 1;
+      const nextBtn = document.getElementById('modal-next-btn');
+      if (isLastStepInLesson && isLastLesson) {
+        nextBtn.textContent = 'انتقل إلى اختبار المهارات 🏆';
+      } else if (isLastStepInLesson) {
+        nextBtn.textContent = 'الدرس التالي ⬅️';
+      } else {
+        nextBtn.textContent = 'الخطوة التالية ⬅️';
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function nextStep() {
+      sfx.pop();
+      document.getElementById('step-modal').classList.add('hidden');
+
+      const lesson = lessons[state.currentLessonIdx];
+      if (state.currentStepIdx < lesson.steps.length - 1) {
+        state.currentStepIdx++;
+        loadStep();
+      } else if (state.currentLessonIdx < lessons.length - 1) {
+        state.currentLessonIdx++;
+        state.currentStepIdx = 0;
+        loadStep();
+      } else {
+        // Completed all lessons -> go to Quiz!
+        startQuiz();
+      }
+    }
+
+    // ==========================================
+    // 6. QUIZ MODE LOGIC
+    // ==========================================
+    function startQuiz() {
+      sfx.pop();
+      state.quizIdx = 0;
+      state.quizLocked = false;
+      showScreen('quiz-screen');
+      loadQuizQuestion();
+    }
+
+    function loadQuizQuestion() {
+      state.quizLocked = false;
+      const q = quizQuestions[state.quizIdx];
+
+      // Update Header
+      document.getElementById('stage-label').textContent = 'اختبار المهارات';
+      document.getElementById('step-label').textContent = `${state.quizIdx + 1} / ${quizQuestions.length}`;
+      const pct = ((state.quizIdx + 1) / quizQuestions.length) * 100;
+      document.getElementById('progress-bar').style.width = `${pct}%`;
+
+      document.getElementById('quiz-emoji').textContent = q.emoji;
+      document.getElementById('quiz-question').textContent = q.question;
+      document.getElementById('quiz-feedback').textContent = '';
+
+      // Render Display Parts
+      const displayEl = document.getElementById('quiz-display');
+      displayEl.innerHTML = '';
+      q.displayParts.forEach(part => {
+        const span = document.createElement('span');
+        if (part === '؟') {
+          span.className = 'bg-amber-100 border-2 border-dashed border-amber-400 text-amber-600 px-5 py-2 rounded-2xl';
+          span.id = 'quiz-blank';
+        } else {
+          span.className = 'bg-white px-4 py-2 rounded-2xl shadow-sm border border-indigo-100';
+        }
+        span.textContent = part;
+        displayEl.appendChild(span);
+      });
+
+      // Render Options
+      const optionsEl = document.getElementById('quiz-options');
+      optionsEl.innerHTML = '';
+      const colors = [
+        'bg-sky-500 hover:bg-sky-600 text-white',
+        'bg-pink-500 hover:bg-pink-600 text-white',
+        'bg-amber-400 hover:bg-amber-500 text-amber-950'
+      ];
+
+      q.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `tile-3d ${colors[idx % colors.length]} font-black text-2xl sm:text-3xl py-4 px-4 rounded-2xl transition`;
+        btn.textContent = opt;
+        btn.onclick = () => checkQuizAnswer(opt, btn);
+        optionsEl.appendChild(btn);
+      });
+
+      setTimeout(() => speakArabic(q.speech), 300);
+    }
+
+    function speakQuizTarget() {
+      speakArabic(quizQuestions[state.quizIdx].speech);
+    }
+
+    function checkQuizAnswer(selectedOpt, btnEl) {
+      if (state.quizLocked) return;
+      const q = quizQuestions[state.quizIdx];
+      const fb = document.getElementById('quiz-feedback');
+
+      if (selectedOpt === q.correct) {
+        state.quizLocked = true;
+        sfx.success();
+        updateScore(15);
+        spawnConfetti(20);
+
+        const blank = document.getElementById('quiz-blank');
+        if (blank) {
+          blank.textContent = q.correct;
+          blank.className = 'bg-emerald-500 text-white px-5 py-2 rounded-2xl animate-pop';
+        }
+
+        fb.textContent = 'إجابة صحيحة! أحسنت 🌟';
+        fb.className = 'h-10 flex items-center justify-center font-black text-xl text-emerald-600 animate-pop';
+
+        setTimeout(() => {
+          state.quizIdx++;
+          if (state.quizIdx < quizQuestions.length) {
+            loadQuizQuestion();
+          } else {
+            showVictoryScreen();
+          }
+        }, 1400);
+      } else {
+        sfx.error();
+        btnEl.classList.remove('animate-shake');
+        void btnEl.offsetWidth;
+        btnEl.classList.add('animate-shake');
+        fb.textContent = 'حاول مرة أخرى! 🤔';
+        fb.className = 'h-10 flex items-center justify-center font-black text-lg text-rose-600 animate-pop';
+      }
+    }
+
+    // ==========================================
+    // 7. VICTORY & CONFETTI
+    // ==========================================
+    function showVictoryScreen() {
+      sfx.fanfare();
+      spawnConfetti(60);
+      showScreen('gameover-screen');
+      document.getElementById('final-score').textContent = state.score;
+      speakArabic("أحسنت يا بطل! لقد أتممت الاختبار بنجاح!");
+    }
+
+    function spawnConfetti(count = 30) {
+      const colors = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6'];
+      for (let i = 0; i < count; i++) {
+        const conf = document.createElement('div');
+        conf.className = 'confetti-piece';
+        conf.style.left = Math.random() * 100 + 'vw';
+        conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        conf.style.animation = `confettiFall ${1.5 + Math.random() * 1.5}s linear forwards`;
+        conf.style.animationDelay = Math.random() * 0.3 + 's';
+        document.body.appendChild(conf);
+        setTimeout(() => conf.remove(), 3200);
+      }
+    }
+  </script>
+</body>
+</html>
